@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.joyproxy.app.JoyProxyApp
 import com.joyproxy.app.MainActivity
 import com.joyproxy.app.R
 import com.joyproxy.app.config.ConfigBuilder
@@ -51,19 +52,23 @@ class BoxService(
     private val binder = VpnBinder()
     private lateinit var commandServer: CommandServer
     private val settingsRepository = SettingsRepository(service)
+    private var pendingSettings: ProxySettings? = null
 
-    fun onStartCommand(): Int {
+    fun onStartCommand(intent: Intent?): Int {
         if (status != Status.Stopped) return Service.START_NOT_STICKY
         status = Status.Starting
+        pendingSettings = intent?.readProxySettings()
+        VpnStatusBus.emit(VpnStatusBus.Event.Connecting)
         showNotification(service.getString(R.string.vpn_connecting), false)
 
         GlobalScope.launch(Dispatchers.IO) {
             try {
+                JoyProxyApp.instance.libboxReady.await()
                 startCommandServer()
                 startVpn()
             } catch (e: Exception) {
                 Log.e(TAG, "start failed", e)
-                stopService()
+                failToStart(friendlyError(e))
             }
         }
         return Service.START_STICKY
@@ -75,11 +80,13 @@ class BoxService(
     }
 
     private suspend fun startVpn() {
-        val settings = settingsRepository.settings.first()
+        val settings = pendingSettings ?: settingsRepository.settings.first()
         if (!settings.isValid()) {
-            stopService()
+            failToStart("代理配置无效，请重新填写后连接")
             return
         }
+
+        settingsRepository.save(settings.copy(connected = false))
 
         val config = ConfigBuilder.build(settings)
         DefaultNetworkMonitor.start()
@@ -88,14 +95,33 @@ class BoxService(
             commandServer.startOrReloadService(config, buildOverrideOptions(settings))
         } catch (e: Exception) {
             Log.e(TAG, "create service failed", e)
-            stopService()
+            failToStart(friendlyError(e))
             return
         }
 
         status = Status.Started
-        settingsRepository.setConnected(true)
+        settingsRepository.save(settings.copy(connected = true))
+        VpnStatusBus.emit(VpnStatusBus.Event.Connected)
         withContext(Dispatchers.Main) {
             showNotification(service.getString(R.string.vpn_notification_title), true)
+        }
+    }
+
+    private suspend fun failToStart(message: String) {
+        VpnStatusBus.emit(VpnStatusBus.Event.Failed(message))
+        settingsRepository.setConnected(false)
+        stopService()
+    }
+
+    private fun friendlyError(error: Exception): String {
+        val message = error.message.orEmpty()
+        return when {
+            message.contains("missing vpn permission", ignoreCase = true) ->
+                "未获得 VPN 授权，请允许建立 VPN 连接"
+            message.contains("vpn establish failed", ignoreCase = true) ->
+                "VPN 隧道建立失败，请重试"
+            message.isBlank() -> "VPN 启动失败，请稍后重试"
+            else -> "VPN 启动失败：${message.take(120)}"
         }
     }
 
@@ -135,6 +161,7 @@ class BoxService(
             }
             settingsRepository.setConnected(false)
             status = Status.Stopped
+            VpnStatusBus.emit(VpnStatusBus.Event.Disconnected)
             withContext(Dispatchers.Main) {
                 service.stopForeground(Service.STOP_FOREGROUND_REMOVE)
                 service.stopSelf()
@@ -157,7 +184,7 @@ class BoxService(
     override fun serviceReload() {
         runBlocking {
             if (::commandServer.isInitialized) {
-                val settings = settingsRepository.settings.first()
+                val settings = pendingSettings ?: settingsRepository.settings.first()
                 val config = ConfigBuilder.build(settings)
                 commandServer.startOrReloadService(config, buildOverrideOptions(settings))
             }
@@ -174,13 +201,13 @@ class BoxService(
         Log.d("sing-box", message ?: "")
     }
 
-    fun sendNotification(notification: Notification) {
-        // libbox internal notifications - ignore for now
-    }
+    fun sendNotification(notification: Notification) {}
 
     fun openTunFromService(options: TunOptions): Int {
         val vpnService = service as VpnService
-        if (VpnService.prepare(vpnService) != null) error("android: missing vpn permission")
+        if (VpnService.prepare(vpnService) != null) {
+            error("android: missing vpn permission")
+        }
 
         val builder =
             vpnService.Builder()
@@ -262,7 +289,11 @@ class BoxService(
         val manager = service.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel =
-                NotificationChannel(CHANNEL_ID, service.getString(R.string.vpn_notification_channel), NotificationManager.IMPORTANCE_LOW)
+                NotificationChannel(
+                    CHANNEL_ID,
+                    service.getString(R.string.vpn_notification_channel),
+                    NotificationManager.IMPORTANCE_LOW,
+                )
             manager.createNotificationChannel(channel)
         }
 

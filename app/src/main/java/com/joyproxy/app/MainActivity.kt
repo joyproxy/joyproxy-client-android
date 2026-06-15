@@ -1,14 +1,21 @@
 package com.joyproxy.app
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.VpnService
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.material3.MaterialTheme
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.joyproxy.app.ui.AppPickerActivity
 import com.joyproxy.app.ui.HomeScreen
 import com.joyproxy.app.ui.MainViewModel
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -16,8 +23,15 @@ class MainActivity : ComponentActivity() {
     private val vpnPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
-                viewModel.startVpn()
+                requestNotificationPermissionThenStart()
+            } else {
+                viewModel.showMessage("需要 VPN 授权才能建立代理连接")
             }
+        }
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            viewModel.startVpn()
         }
 
     private val appPickerLauncher =
@@ -36,14 +50,7 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 HomeScreen(
                     viewModel = viewModel,
-                    onConnect = {
-                        val intent = com.joyproxy.app.vpn.VpnController.prepare(this)
-                        if (intent != null) {
-                            vpnPermissionLauncher.launch(intent)
-                        } else {
-                            viewModel.startVpn()
-                        }
-                    },
+                    onConnect = ::beginConnect,
                     onPickApps = {
                         appPickerLauncher.launch(
                             android.content.Intent(this, AppPickerActivity::class.java).apply {
@@ -57,5 +64,36 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun beginConnect() {
+        lifecycleScope.launch {
+            viewModel.flushSettings()
+            requestVpnPermission()
+        }
+    }
+
+    private fun requestVpnPermission() {
+        val prepareIntent = VpnService.prepare(this)
+        if (prepareIntent != null) {
+            vpnPermissionLauncher.launch(prepareIntent)
+        } else {
+            requestNotificationPermissionThenStart()
+        }
+    }
+
+    private fun requestNotificationPermissionThenStart() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted =
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS,
+                ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        viewModel.startVpn()
     }
 }

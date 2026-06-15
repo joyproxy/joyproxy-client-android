@@ -10,14 +10,13 @@ import com.joyproxy.app.config.ProxySettings
 import com.joyproxy.app.data.SettingsRepository
 import com.joyproxy.app.network.ProxyTester
 import com.joyproxy.app.vpn.VpnController
+import com.joyproxy.app.vpn.VpnStatusBus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class ProxyTestStatus {
@@ -45,9 +44,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _testState = MutableStateFlow(ProxyTestState())
     val testState: StateFlow<ProxyTestState> = _testState.asStateFlow()
 
+    private val _connecting = MutableStateFlow(false)
+    val connecting: StateFlow<Boolean> = _connecting.asStateFlow()
+
     init {
         viewModelScope.launch {
-            _settings.value = repository.settings.first()
+            val saved = repository.settings.first()
+            _settings.value = saved.copy(connected = false)
+            if (saved.connected) {
+                repository.setConnected(false)
+            }
+        }
+        viewModelScope.launch {
+            VpnStatusBus.connected.collect { connected ->
+                _settings.value = _settings.value.copy(connected = connected)
+            }
+        }
+        viewModelScope.launch {
+            VpnStatusBus.events.collect { event ->
+                when (event) {
+                    is VpnStatusBus.Event.Connecting -> _connecting.value = true
+                    is VpnStatusBus.Event.Connected,
+                    is VpnStatusBus.Event.Disconnected,
+                    -> _connecting.value = false
+                    is VpnStatusBus.Event.Failed -> {
+                        _connecting.value = false
+                        _message.value = event.message
+                    }
+                }
+            }
         }
     }
 
@@ -58,8 +83,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         saveJob =
             viewModelScope.launch {
                 delay(400)
-                repository.save(updated)
+                repository.save(updated.copy(connected = _settings.value.connected))
             }
+    }
+
+    suspend fun flushSettings() {
+        saveJob?.cancel()
+        repository.save(_settings.value.copy(connected = VpnStatusBus.connected.value))
     }
 
     fun setProtocol(protocol: ProxyProtocol) = update { it.copy(protocol = protocol) }
@@ -107,17 +137,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun startVpn() {
         val current = _settings.value
         VpnController.start(getApplication(), current)
-        viewModelScope.launch { repository.setConnected(true) }
-        _settings.value = current.copy(connected = true)
     }
 
     fun disconnect() {
         VpnController.stop(getApplication())
-        viewModelScope.launch { repository.setConnected(false) }
-        _settings.value = _settings.value.copy(connected = false)
     }
 
     fun clearMessage() {
         _message.value = null
+    }
+
+    fun showMessage(message: String) {
+        _message.value = message
     }
 }

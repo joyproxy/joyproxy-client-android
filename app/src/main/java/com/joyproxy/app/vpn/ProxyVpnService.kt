@@ -23,7 +23,7 @@ class ProxyVpnService : VpnService(), PlatformInterfaceWrapper {
       boxService.stopService()
       return START_NOT_STICKY
     }
-    return boxService.onStartCommand()
+    return boxService.onStartCommand(intent)
   }
 
   override fun onBind(intent: Intent): IBinder? {

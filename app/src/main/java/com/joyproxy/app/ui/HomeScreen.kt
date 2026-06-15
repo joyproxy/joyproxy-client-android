@@ -63,6 +63,7 @@ fun HomeScreen(
     onPickApps: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsState()
+    val connecting by viewModel.connecting.collectAsState()
     val message by viewModel.message.collectAsState()
     val testState by viewModel.testState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -94,6 +95,7 @@ fun HomeScreen(
         ) {
             ConnectionCard(
                 connected = settings.connected,
+                connecting = connecting,
                 onConnect = { viewModel.connect(onConnect) },
                 onDisconnect = viewModel::disconnect,
             )
@@ -131,6 +133,7 @@ fun HomeScreen(
 @Composable
 private fun ConnectionCard(
     connected: Boolean,
+    connecting: Boolean,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
@@ -144,20 +147,36 @@ private fun ConnectionCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.PowerSettingsNew, contentDescription = null)
                 Text(
-                    text = if (connected) "已连接" else "未连接",
+                    text =
+                        when {
+                            connected -> "已连接"
+                            connecting -> "正在连接…"
+                            else -> "未连接"
+                        },
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
             Button(
                 onClick = if (connected) onDisconnect else onConnect,
+                enabled = !connecting,
                 modifier = Modifier.fillMaxWidth(),
                 colors =
                     ButtonDefaults.buttonColors(
-                        containerColor = if (connected) Color(0xFFE53935) else Color(0xFF1976D2),
+                        containerColor = when {
+                            connected -> Color(0xFFE53935)
+                            connecting -> Color(0xFF90A4AE)
+                            else -> Color(0xFF1976D2)
+                        },
                     ),
             ) {
-                Text(if (connected) "断开连接" else "连接代理")
+                Text(
+                    when {
+                        connected -> "断开连接"
+                        connecting -> "连接中…"
+                        else -> "连接代理"
+                    },
+                )
             }
         }
     }

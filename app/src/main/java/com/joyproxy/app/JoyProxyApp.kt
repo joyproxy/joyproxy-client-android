@@ -10,6 +10,7 @@ import android.os.PowerManager
 import androidx.core.content.getSystemService
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.SetupOptions
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -17,6 +18,8 @@ import java.io.File
 import java.util.Locale
 
 class JoyProxyApp : Application() {
+    val libboxReady = CompletableDeferred<Unit>()
+
     override fun attachBaseContext(base: Context?) {
         super.attachBaseContext(base)
         instance = this
@@ -26,7 +29,12 @@ class JoyProxyApp : Application() {
         super.onCreate()
         Libbox.setLocale(Locale.getDefault().toLanguageTag().replace("-", "_"))
         GlobalScope.launch(Dispatchers.IO) {
-            initializeLibbox()
+            try {
+                initializeLibbox()
+                libboxReady.complete(Unit)
+            } catch (e: Exception) {
+                libboxReady.completeExceptionally(e)
+            }
         }
     }
 
