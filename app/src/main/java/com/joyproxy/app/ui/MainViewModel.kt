@@ -97,14 +97,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setPort(port: Int) = update { it.copy(port = port) }
     fun setUsername(username: String) = update { it.copy(username = username) }
     fun setPassword(password: String) = update { it.copy(password = password) }
-    fun setScope(scope: ProxyScope) = update { it.copy(scope = scope) }
-    fun setSelectedApps(apps: Set<String>) = update { it.copy(selectedApps = apps) }
-    fun setDnsMode(mode: DnsMode) = update { it.copy(dnsMode = mode) }
+    fun setScope(scope: ProxyScope) {
+        update { it.copy(scope = scope) }
+        notifyReconnectIfConnected("代理范围")
+    }
+
+    fun setSelectedApps(apps: Set<String>) {
+        update { it.copy(selectedApps = apps) }
+        notifyReconnectIfConnected("应用列表")
+    }
+
+    fun setDnsMode(mode: DnsMode) {
+        update { it.copy(dnsMode = mode) }
+        notifyReconnectIfConnected("DNS 模式")
+    }
+
     fun setCustomDns(dns: String) = update { it.copy(customDns = dns) }
+
     fun setDohUrl(url: String) = update { it.copy(dohUrl = url) }
+
+    private fun notifyReconnectIfConnected(settingName: String) {
+        if (_settings.value.connected) {
+            _message.value = "已修改$settingName，需断开后重新连接方可生效"
+        }
+    }
 
     fun testProxy() {
         val current = _settings.value
+        if (current.connected || _connecting.value) {
+            _testState.value = ProxyTestState(ProxyTestStatus.Failed, "已连接时无法测试，请先断开连接")
+            return
+        }
         if (!current.isValid()) {
             _testState.value = ProxyTestState(ProxyTestStatus.Failed, "请先填写有效的代理地址和端口")
             return

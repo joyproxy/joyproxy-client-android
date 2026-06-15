@@ -103,6 +103,8 @@ fun HomeScreen(
             ProxyConfigCard(
                 settings = settings,
                 testState = testState,
+                connected = settings.connected,
+                connecting = connecting,
                 onProtocolChange = viewModel::setProtocol,
                 onHostChange = viewModel::setHost,
                 onPortChange = viewModel::setPort,
@@ -187,6 +189,8 @@ private fun ConnectionCard(
 private fun ProxyConfigCard(
     settings: ProxySettings,
     testState: ProxyTestState,
+    connected: Boolean,
+    connecting: Boolean,
     onProtocolChange: (ProxyProtocol) -> Unit,
     onHostChange: (String) -> Unit,
     onPortChange: (Int) -> Unit,
@@ -286,7 +290,7 @@ private fun ProxyConfigCard(
 
         OutlinedButton(
             onClick = onTest,
-            enabled = testState.status != ProxyTestStatus.Testing,
+            enabled = !connected && !connecting && testState.status != ProxyTestStatus.Testing,
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (testState.status == ProxyTestStatus.Testing) {
@@ -295,7 +299,13 @@ private fun ProxyConfigCard(
                     strokeWidth = 2.dp,
                 )
             }
-            Text(if (testState.status == ProxyTestStatus.Testing) "测试中…" else "测试代理连通性")
+            Text(
+                when {
+                    connected -> "已连接，请先断开再测试"
+                    testState.status == ProxyTestStatus.Testing -> "测试中…"
+                    else -> "测试代理连通性"
+                },
+            )
         }
 
         if (testState.status == ProxyTestStatus.Success || testState.status == ProxyTestStatus.Failed) {
@@ -428,7 +438,21 @@ private fun DnsCard(
             )
         }
 
-        if (dnsMode == DnsMode.DOH || dnsMode == DnsMode.FAKE_IP) {
+        if (dnsMode == DnsMode.FAKE_IP) {
+            OutlinedTextField(
+                value = dohUrlText,
+                onValueChange = {
+                    dohUrlText = it
+                    onDohUrlChange(it)
+                },
+                label = { Text("远程 DNS (DoH)") },
+                placeholder = { Text("https://dns.alidns.com/dns-query") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+            )
+        }
+
+        if (dnsMode == DnsMode.DOH) {
             OutlinedTextField(
                 value = dohUrlText,
                 onValueChange = {
@@ -458,8 +482,10 @@ private fun dnsModeLabel(mode: DnsMode, short: Boolean = false): String =
 
 private fun dnsModeDescription(mode: DnsMode): String =
     when (mode) {
-        DnsMode.FAKE_IP -> "由代理服务器远程解析域名，可有效避免 DNS 污染，推荐使用。"
-        DnsMode.DOH -> "通过加密 DNS 查询解析域名，需填写可访问的 DoH 地址。"
+        DnsMode.FAKE_IP ->
+            "应用拿到的是虚拟 IP，真实域名在代理端解析，防 DNS 污染效果最好。下方 DoH 用于代理端远程解析。"
+        DnsMode.DOH ->
+            "DNS 查询经 HTTPS 加密后走代理，返回真实 IP。不经过虚拟 IP 映射。"
         DnsMode.CUSTOM -> "使用你指定的 DNS 服务器，查询会经代理发出。"
         DnsMode.SYSTEM -> "使用系统默认 DNS，可能受到 DNS 污染影响。"
     }

@@ -8,6 +8,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import java.net.InetAddress
 
 object ConfigBuilder {
     private val json = Json { prettyPrint = false }
@@ -105,6 +106,7 @@ object ConfigBuilder {
                     )
                 }
                 putJsonArray("rules") {
+                    proxyHostDnsRule(settings)?.let { add(it) }
                     add(
                         buildJsonObject {
                             putJsonArray("query_type") {
@@ -140,6 +142,11 @@ object ConfigBuilder {
                         },
                     )
                 }
+                proxyHostDnsRule(settings)?.let { rule ->
+                    putJsonArray("rules") {
+                        add(rule)
+                    }
+                }
                 put("final", "dns-doh")
                 put("strategy", "prefer_ipv4")
             }
@@ -160,6 +167,11 @@ object ConfigBuilder {
                         },
                     )
                 }
+                proxyHostDnsRule(settings)?.let { rule ->
+                    putJsonArray("rules") {
+                        add(rule)
+                    }
+                }
                 put("final", "dns-custom")
                 put("strategy", "prefer_ipv4")
             }
@@ -178,6 +190,24 @@ object ConfigBuilder {
             }
         }
     }
+
+    /** 代理地址为域名时，用本地 DNS 直连解析，避免「解析代理 → 走代理」的死循环。 */
+    private fun proxyHostDnsRule(settings: ProxySettings): JsonObject? {
+        val host = settings.host.trim()
+        if (host.isBlank() || isIpAddress(host)) return null
+        return buildJsonObject {
+            putJsonArray("domain") {
+                add(JsonPrimitive(host))
+            }
+            put("server", "dns-local")
+        }
+    }
+
+    private fun isIpAddress(host: String): Boolean =
+        runCatching {
+            val addr = InetAddress.getByName(host)
+            addr.hostAddress == host || host.contains(":")
+        }.getOrDefault(false)
 
     private fun buildProxyOutbound(settings: ProxySettings): JsonObject {
         return buildJsonObject {
