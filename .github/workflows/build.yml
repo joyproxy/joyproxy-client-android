@@ -36,13 +36,14 @@ jobs:
         run: |
           git clone --depth 1 --branch v1.11.8 https://github.com/SagerNet/sing-box.git /tmp/sing-box
           cd /tmp/sing-box
-          go install github.com/sagernet/gomobile/cmd/gomobile@v0.1.7
-          go install github.com/sagernet/gomobile/cmd/gobind@v0.1.7
+          go install github.com/sagernet/gomobile/cmd/gomobile@v0.1.4
+          go install github.com/sagernet/gomobile/cmd/gobind@v0.1.4
           export PATH="$(go env GOPATH)/bin:$PATH"
           gomobile init
-          go run ./cmd/internal/build_libbox/main.go -target android
+          go run ./cmd/internal/build_libbox -target android
           mkdir -p "$GITHUB_WORKSPACE/app/libs"
           cp libbox.aar "$GITHUB_WORKSPACE/app/libs/libbox.aar"
+          ls -lh "$GITHUB_WORKSPACE/app/libs/libbox.aar"
 
       - name: Build release APK
         run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
