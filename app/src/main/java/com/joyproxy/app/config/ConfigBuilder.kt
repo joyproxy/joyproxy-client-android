@@ -29,6 +29,7 @@ object ConfigBuilder {
                         }
                         put("mtu", 9000)
                         put("auto_route", true)
+                        put("auto_redirect", false)
                         put("strict_route", true)
                         put("stack", "system")
                     },

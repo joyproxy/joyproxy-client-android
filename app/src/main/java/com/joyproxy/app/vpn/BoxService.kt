@@ -127,7 +127,7 @@ class BoxService(
 
     private fun buildOverrideOptions(settings: ProxySettings): OverrideOptions {
         return OverrideOptions().apply {
-            autoRedirect = true
+            autoRedirect = false
             val selfPackage = service.packageName
             when (settings.scope) {
                 ProxyScope.WHITELIST -> {
