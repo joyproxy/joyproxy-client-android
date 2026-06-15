@@ -180,7 +180,7 @@ class BoxService(
 
     fun openTunFromService(options: TunOptions): Int {
         val vpnService = service as VpnService
-        if (vpnService.prepare(vpnService) != null) error("android: missing vpn permission")
+        if (VpnService.prepare(vpnService) != null) error("android: missing vpn permission")
 
         val builder =
             vpnService.Builder()
