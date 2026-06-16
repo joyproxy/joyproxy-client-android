@@ -1,7 +1,11 @@
 package com.joyproxy.app.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,13 +13,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -32,12 +39,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,16 +53,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.joyproxy.app.config.DnsMode
 import com.joyproxy.app.config.ProxyProtocol
 import com.joyproxy.app.config.ProxyScope
 import com.joyproxy.app.config.ProxySettings
 import com.joyproxy.app.config.SavedProxy
+import com.joyproxy.app.ui.theme.JoyProxyColors
+import com.joyproxy.app.ui.theme.JoyProxyHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,34 +94,34 @@ fun HomeScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "JoyProxy",
-                        modifier =
-                            Modifier.clickable(enabled = !showDnsSettings) {
-                                dnsTapCount++
-                                if (dnsTapCount >= 7) {
-                                    showDnsSettings = true
-                                }
-                            },
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-            )
-        },
+        containerColor = JoyProxyColors.Surface,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(padding),
         ) {
+            JoyProxyHeader(
+                onTitleClick = {
+                    if (!showDnsSettings) {
+                        dnsTapCount++
+                        if (dnsTapCount >= 7) {
+                            showDnsSettings = true
+                        }
+                    }
+                },
+            )
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
             ConnectionCard(
                 connected = settings.connected,
                 connecting = connecting,
@@ -150,6 +162,7 @@ fun HomeScreen(
                     onDohUrlChange = viewModel::setDohUrl,
                 )
             }
+            }
         }
     }
 }
@@ -161,45 +174,76 @@ private fun ConnectionCard(
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
+    val statusColor =
+        when {
+            connected -> JoyProxyColors.Success
+            connecting -> JoyProxyColors.Warning
+            else -> JoyProxyColors.TextSecondary
+        }
+    val statusText =
+        when {
+            connected -> "已连接"
+            connecting -> "正在连接…"
+            else -> "未连接"
+        }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (connected) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
-        ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = JoyProxyColors.SurfaceCard),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.PowerSettingsNew, contentDescription = null)
+                Box(
+                    modifier =
+                        Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(statusColor),
+                )
+                Text(
+                    text = statusText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 10.dp),
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = if (connected) "VPN 运行中" else "VPN 未启动",
+                    color = JoyProxyColors.TextSecondary,
+                    fontSize = 12.sp,
+                )
+            }
+
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            when {
+                                connected -> Brush.linearGradient(listOf(JoyProxyColors.Error, Color(0xFFDC2626)))
+                                connecting -> Brush.linearGradient(listOf(JoyProxyColors.TextSecondary, JoyProxyColors.TextSecondary))
+                                else -> JoyProxyColors.BrandGradient
+                            },
+                        )
+                        .clickable(enabled = !connecting) {
+                            if (connected) onDisconnect() else onConnect()
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
                 Text(
                     text =
                         when {
-                            connected -> "已连接"
-                            connecting -> "正在连接…"
-                            else -> "未连接"
+                            connected -> "断开连接"
+                            connecting -> "连接中…"
+                            else -> "连接代理"
                         },
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            Button(
-                onClick = if (connected) onDisconnect else onConnect,
-                enabled = !connecting,
-                modifier = Modifier.fillMaxWidth(),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = when {
-                            connected -> Color(0xFFE53935)
-                            connecting -> Color(0xFF90A4AE)
-                            else -> Color(0xFF1976D2)
-                        },
-                    ),
-            ) {
-                Text(
-                    when {
-                        connected -> "断开连接"
-                        connecting -> "连接中…"
-                        else -> "连接代理"
-                    },
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
                 )
             }
         }
@@ -266,6 +310,8 @@ private fun ProxyConfigCard(
                     label = { Text("历史记录") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = historyExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = fieldColors,
                 )
                 ExposedDropdownMenu(
                     expanded = historyExpanded,
@@ -304,6 +350,8 @@ private fun ProxyConfigCard(
                 label = { Text("协议") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = protocolExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
             )
             ExposedDropdownMenu(expanded = protocolExpanded, onDismissRequest = { protocolExpanded = false }) {
                 ProxyProtocol.entries.forEach { protocol ->
@@ -335,6 +383,8 @@ private fun ProxyConfigCard(
             label = { Text("地址 (IP 或域名)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = fieldColors,
         )
 
         OutlinedTextField(
@@ -349,6 +399,8 @@ private fun ProxyConfigCard(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            shape = RoundedCornerShape(12.dp),
+            colors = fieldColors,
         )
 
         OutlinedTextField(
@@ -360,6 +412,8 @@ private fun ProxyConfigCard(
             label = { Text("用户名 (可选)") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            shape = RoundedCornerShape(12.dp),
+            colors = fieldColors,
         )
 
         OutlinedTextField(
@@ -380,12 +434,17 @@ private fun ProxyConfigCard(
                     )
                 }
             },
+            shape = RoundedCornerShape(12.dp),
+            colors = fieldColors,
         )
 
         OutlinedButton(
             onClick = onTest,
             enabled = !connected && !connecting && testState.status != ProxyTestStatus.Testing,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, JoyProxyColors.Indigo),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = JoyProxyColors.Indigo),
         ) {
             if (testState.status == ProxyTestStatus.Testing) {
                 CircularProgressIndicator(
@@ -405,7 +464,7 @@ private fun ProxyConfigCard(
         if (testState.status == ProxyTestStatus.Success || testState.status == ProxyTestStatus.Failed) {
             Text(
                 text = testState.message,
-                color = if (testState.status == ProxyTestStatus.Success) Color(0xFF2E7D32) else Color(0xFFC62828),
+                color = if (testState.status == ProxyTestStatus.Success) JoyProxyColors.Success else JoyProxyColors.Error,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
@@ -436,6 +495,8 @@ private fun ScopeCard(
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 ProxyScope.entries.forEach { item ->
@@ -459,7 +520,12 @@ private fun ScopeCard(
         }
 
         if (scope != ProxyScope.GLOBAL) {
-            Button(onClick = onPickApps, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onPickApps,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = JoyProxyColors.Indigo),
+            ) {
                 Icon(Icons.Default.Apps, contentDescription = null)
                 Text("选择应用 ($selectedCount)", modifier = Modifier.padding(start = 8.dp))
             }
@@ -493,6 +559,8 @@ private fun DnsCard(
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
             )
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 listOf(
@@ -515,7 +583,7 @@ private fun DnsCard(
         Text(
             text = dnsModeDescription(dnsMode),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = JoyProxyColors.TextSecondary,
         )
 
         if (dnsMode == DnsMode.CUSTOM) {
@@ -529,6 +597,8 @@ private fun DnsCard(
                 placeholder = { Text("例如 223.5.5.5") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
             )
         }
 
@@ -543,6 +613,8 @@ private fun DnsCard(
                 placeholder = { Text("https://dns.alidns.com/dns-query") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
             )
         }
 
@@ -557,6 +629,8 @@ private fun DnsCard(
                 placeholder = { Text("https://dns.alidns.com/dns-query") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
             )
         }
     }
@@ -609,11 +683,42 @@ private fun SectionCard(
     title: String,
     content: @Composable () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(4.dp))
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, JoyProxyColors.Border, RoundedCornerShape(16.dp)),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = JoyProxyColors.SurfaceCard),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier =
+                        Modifier
+                            .width(4.dp)
+                            .height(18.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(JoyProxyColors.BrandGradient),
+                )
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 10.dp),
+                )
+            }
             content()
         }
     }
 }
+
+private val fieldColors
+    @Composable get() =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = JoyProxyColors.Indigo,
+            unfocusedBorderColor = JoyProxyColors.Border,
+            focusedLabelColor = JoyProxyColors.Indigo,
+            cursorColor = JoyProxyColors.Indigo,
+        )

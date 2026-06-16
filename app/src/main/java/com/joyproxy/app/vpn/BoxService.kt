@@ -309,7 +309,7 @@ class BoxService(
             NotificationCompat.Builder(service, CHANNEL_ID)
                 .setContentTitle(service.getString(R.string.app_name))
                 .setContentText(text)
-                .setSmallIcon(R.drawable.ic_vpn)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(pendingIntent)
                 .setOngoing(ongoing)
                 .build()

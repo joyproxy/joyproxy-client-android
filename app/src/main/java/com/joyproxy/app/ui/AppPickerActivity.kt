@@ -5,7 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
+import com.joyproxy.app.ui.theme.JoyProxyTheme
 
 class AppPickerActivity : ComponentActivity() {
     companion object {
@@ -16,7 +16,7 @@ class AppPickerActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val initial = intent.getStringArrayListExtra(EXTRA_SELECTED_APPS)?.toSet() ?: emptySet()
         setContent {
-            MaterialTheme {
+            JoyProxyTheme {
                 AppPickerScreen(
                     initialSelection = initial,
                     onDone = { selected ->

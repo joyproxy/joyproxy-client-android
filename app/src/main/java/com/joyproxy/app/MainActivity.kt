@@ -9,7 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.material3.MaterialTheme
+import com.joyproxy.app.ui.theme.JoyProxyTheme
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.joyproxy.app.ui.AppPickerActivity
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            JoyProxyTheme {
                 HomeScreen(
                     viewModel = viewModel,
                     onConnect = ::beginConnect,
