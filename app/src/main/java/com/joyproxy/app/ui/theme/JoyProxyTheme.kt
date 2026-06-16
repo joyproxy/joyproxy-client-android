@@ -30,7 +30,7 @@ object JoyProxyColors {
 
     val BrandGradient =
         Brush.linearGradient(
-            colors = listOf(Indigo, Violet, Color(0xFF9333EA)),
+            colors = listOf(Color(0xFF667EEA), Color(0xFF764BA2)),
         )
 }
 
