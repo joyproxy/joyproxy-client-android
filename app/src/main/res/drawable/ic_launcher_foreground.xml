@@ -4,7 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- 竖线在右、钩子在左下，标准大写 J -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M67,32 H41 V68 C41,82 51,91 65,91 C74,91 81,88 86,82 L76,72 C72,77 69,79 65,79 C55,79 51,73 51,68 V32 Z" />
+        android:pathData="M46,30 H70 V66 C70,78 62,88 48,88 C38,88 30,82 28,74 L40,66 C42,72 46,76 52,76 C58,76 62,72 62,66 V30 H46 Z" />
 </vector>
