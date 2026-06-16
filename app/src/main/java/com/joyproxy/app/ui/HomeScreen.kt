@@ -1,5 +1,6 @@
 package com.joyproxy.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -67,6 +68,8 @@ fun HomeScreen(
     val message by viewModel.message.collectAsState()
     val testState by viewModel.testState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    var dnsTapCount by remember { mutableStateOf(0) }
+    var showDnsSettings by remember { mutableStateOf(false) }
 
     LaunchedEffect(message) {
         message?.let {
@@ -78,7 +81,18 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("JoyProxy") },
+                title = {
+                    Text(
+                        text = "JoyProxy",
+                        modifier =
+                            Modifier.clickable(enabled = !showDnsSettings) {
+                                dnsTapCount++
+                                if (dnsTapCount >= 7) {
+                                    showDnsSettings = true
+                                }
+                            },
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
             )
         },
@@ -120,14 +134,16 @@ fun HomeScreen(
                 onPickApps = onPickApps,
             )
 
-            DnsCard(
-                dnsMode = settings.dnsMode,
-                customDns = settings.customDns,
-                dohUrl = settings.dohUrl,
-                onDnsModeChange = viewModel::setDnsMode,
-                onCustomDnsChange = viewModel::setCustomDns,
-                onDohUrlChange = viewModel::setDohUrl,
-            )
+            if (showDnsSettings) {
+                DnsCard(
+                    dnsMode = settings.dnsMode,
+                    customDns = settings.customDns,
+                    dohUrl = settings.dohUrl,
+                    onDnsModeChange = viewModel::setDnsMode,
+                    onCustomDnsChange = viewModel::setCustomDns,
+                    onDohUrlChange = viewModel::setDohUrl,
+                )
+            }
         }
     }
 }
@@ -205,6 +221,10 @@ private fun ProxyConfigCard(
     var passwordVisible by remember { mutableStateOf(false) }
 
     LaunchedEffect(settings.host) { if (host != settings.host) host = settings.host }
+    LaunchedEffect(settings.port) {
+        val portString = settings.port.toString()
+        if (portText != portString) portText = portString
+    }
     LaunchedEffect(settings.username) { if (username != settings.username) username = settings.username }
     LaunchedEffect(settings.password) { if (password != settings.password) password = settings.password }
 
@@ -234,9 +254,17 @@ private fun ProxyConfigCard(
 
         OutlinedTextField(
             value = host,
-            onValueChange = {
-                host = it
-                onHostChange(it)
+            onValueChange = { input ->
+                val parsed = parseHostPort(input)
+                if (parsed != null) {
+                    host = parsed.first
+                    portText = parsed.second.toString()
+                    onHostChange(parsed.first)
+                    onPortChange(parsed.second)
+                } else {
+                    host = input
+                    onHostChange(input)
+                }
             },
             label = { Text("地址 (IP 或域名)") },
             modifier = Modifier.fillMaxWidth(),
@@ -408,7 +436,7 @@ private fun DnsCard(
                     DnsMode.SYSTEM,
                 ).forEach { mode ->
                     DropdownMenuItem(
-                        text = { Text(dnsModeLabel(mode, short = true)) },
+                        text = { Text(dnsModeLabel(mode)) },
                         onClick = {
                             onDnsModeChange(mode)
                             expanded = false
@@ -468,27 +496,47 @@ private fun DnsCard(
     }
 }
 
-private fun dnsModeLabel(mode: DnsMode, short: Boolean = false): String =
+private fun dnsModeLabel(mode: DnsMode): String =
     when (mode) {
-        DnsMode.FAKE_IP ->
-            if (short) "远程解析 (推荐)" else "远程解析 (推荐，防 DNS 污染)"
-        DnsMode.DOH ->
-            if (short) "加密 DNS (DoH)" else "加密 DNS (DoH)"
-        DnsMode.CUSTOM ->
-            if (short) "自定义 DNS" else "自定义 DNS"
-        DnsMode.SYSTEM ->
-            if (short) "系统默认" else "系统默认"
+        DnsMode.FAKE_IP -> "推荐"
+        DnsMode.DOH -> "加密 DNS (DoH)"
+        DnsMode.CUSTOM -> "自定义 DNS"
+        DnsMode.SYSTEM -> "系统默认"
     }
 
 private fun dnsModeDescription(mode: DnsMode): String =
     when (mode) {
-        DnsMode.FAKE_IP ->
-            "应用拿到的是虚拟 IP，真实域名在代理端解析，防 DNS 污染效果最好。下方 DoH 用于代理端远程解析。"
-        DnsMode.DOH ->
-            "DNS 查询经 HTTPS 加密后走代理，返回真实 IP。不经过虚拟 IP 映射。"
+        DnsMode.FAKE_IP -> "应用拿到虚拟 IP，真实域名在代理端解析。下方 DoH 用于代理端远程解析。"
+        DnsMode.DOH -> "DNS 查询经 HTTPS 加密后走代理，返回真实 IP。不经过虚拟 IP 映射。"
         DnsMode.CUSTOM -> "使用你指定的 DNS 服务器，查询会经代理发出。"
-        DnsMode.SYSTEM -> "使用系统默认 DNS，可能受到 DNS 污染影响。"
+        DnsMode.SYSTEM -> "使用系统默认 DNS。"
     }
+
+/** 解析 host:port 或 [ipv6]:port 格式，用于粘贴时自动拆分。 */
+private fun parseHostPort(input: String): Pair<String, Int>? {
+    val trimmed = input.trim()
+    if (trimmed.isBlank()) return null
+
+    val ipv6 = Regex("""^\[(.+)]:(\d+)$""").find(trimmed)
+    if (ipv6 != null) {
+        val port = ipv6.groupValues[2].toIntOrNull() ?: return null
+        if (port !in 1..65535) return null
+        return ipv6.groupValues[1] to port
+    }
+
+    val colonIndex = trimmed.lastIndexOf(':')
+    if (colonIndex <= 0) return null
+
+    val hostPart = trimmed.substring(0, colonIndex)
+    val portPart = trimmed.substring(colonIndex + 1)
+    if (hostPart.isBlank() || portPart.isBlank()) return null
+
+    val port = portPart.toIntOrNull() ?: return null
+    if (port !in 1..65535) return null
+    if (!portPart.all { it.isDigit() }) return null
+
+    return hostPart to port
+}
 
 @Composable
 private fun SectionCard(
