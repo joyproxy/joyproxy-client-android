@@ -2,17 +2,21 @@ package com.joyproxy.app.ui.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.joyproxy.app.BuildConfig
 
 @Composable
 fun JoyProxyHeader(onTitleClick: () -> Unit) {
@@ -24,12 +28,22 @@ fun JoyProxyHeader(onTitleClick: () -> Unit) {
                 .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 20.dp),
     ) {
-        Text(
-            text = "JoyProxy",
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 26.sp,
-            modifier = Modifier.clickable(onClick = onTitleClick),
-        )
+        Column(
+            modifier = Modifier.align(Alignment.CenterStart),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = "JoyProxy",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 26.sp,
+                modifier = Modifier.clickable(onClick = onTitleClick),
+            )
+            Text(
+                text = "v${BuildConfig.VERSION_NAME}",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 13.sp,
+            )
+        }
     }
 }

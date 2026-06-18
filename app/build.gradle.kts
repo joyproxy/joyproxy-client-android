@@ -13,8 +13,8 @@ android {
         applicationId = "com.joyproxy.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 16
-        versionName = "1.1.4"
+        versionCode = 17
+        versionName = "1.0.1"
     }
 
     signingConfigs {
