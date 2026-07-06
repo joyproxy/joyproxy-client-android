@@ -1,32 +1,24 @@
 package com.joyproxy.app.data
 
 import android.content.Context
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
 import com.joyproxy.app.config.AppLanguage
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 
-class LanguageRepository(private val context: Context) {
-    private val languageKey = stringPreferencesKey("app_language")
+class LanguageRepository(context: Context) {
+    private val prefs =
+        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    val language: Flow<AppLanguage> =
-        context.appPreferencesStore.data.map { prefs ->
-            AppLanguage.fromTag(prefs[languageKey])
-        }
+    fun getLanguage(): AppLanguage = AppLanguage.fromTag(prefs.getString(KEY, null))
 
-    suspend fun setLanguage(language: AppLanguage) {
-        context.appPreferencesStore.edit { prefs ->
-            prefs[languageKey] = language.tag
-        }
+    fun setLanguage(language: AppLanguage) {
+        prefs.edit().putString(KEY, language.tag).apply()
     }
 
     companion object {
+        private const val PREFS_NAME = "joyproxy_language"
+        private const val KEY = "app_language"
+
         fun getLanguageSync(context: Context): AppLanguage =
-            runBlocking {
-                LanguageRepository(context).language.first()
-            }
+            runCatching { LanguageRepository(context).getLanguage() }
+                .getOrDefault(AppLanguage.DEFAULT)
     }
 }

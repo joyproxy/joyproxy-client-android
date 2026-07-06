@@ -35,8 +35,7 @@ class JoyProxyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         installCrashLogger()
-        val language = LanguageRepository.getLanguageSync(this)
-        Libbox.setLocale(language.toLocale().toLanguageTag().replace("-", "_"))
+        Libbox.setLocale(LanguageRepository.getLanguageSync(this).toLocale().toLanguageTag().replace("-", "_"))
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 initializeLibbox()

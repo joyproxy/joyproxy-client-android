@@ -65,9 +65,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             historyRepository.history.collect { _savedProxies.value = it }
         }
-        viewModelScope.launch {
-            languageRepository.language.collect { _language.value = it }
-        }
+        _language.value = languageRepository.getLanguage()
         viewModelScope.launch {
             val saved = repository.settings.first()
             _settings.value = saved.copy(connected = false)
@@ -173,11 +171,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setLanguage(language: AppLanguage, onChanged: () -> Unit) {
-        viewModelScope.launch {
-            if (_language.value == language) return@launch
-            languageRepository.setLanguage(language)
-            onChanged()
-        }
+        if (_language.value == language) return
+        languageRepository.setLanguage(language)
+        _language.value = language
+        onChanged()
     }
 
     private fun notifyReconnectIfConnected(settingNameRes: Int) {
