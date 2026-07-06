@@ -3,12 +3,15 @@ package com.joyproxy.app.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.joyproxy.app.R
+import com.joyproxy.app.config.AppLanguage
 import com.joyproxy.app.config.DnsMode
 import com.joyproxy.app.config.DnsProvider
 import com.joyproxy.app.config.ProxyProtocol
 import com.joyproxy.app.config.ProxyScope
 import com.joyproxy.app.config.ProxySettings
 import com.joyproxy.app.config.SavedProxy
+import com.joyproxy.app.data.LanguageRepository
 import com.joyproxy.app.data.ProxyHistoryRepository
 import com.joyproxy.app.data.SettingsRepository
 import com.joyproxy.app.network.ProxyTester
@@ -37,6 +40,7 @@ data class ProxyTestState(
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SettingsRepository(application)
     private val historyRepository = ProxyHistoryRepository(application)
+    private val languageRepository = LanguageRepository(application)
     private var saveJob: Job? = null
 
     private val _settings = MutableStateFlow(ProxySettings())
@@ -54,9 +58,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _savedProxies = MutableStateFlow<List<SavedProxy>>(emptyList())
     val savedProxies: StateFlow<List<SavedProxy>> = _savedProxies.asStateFlow()
 
+    private val _language = MutableStateFlow(AppLanguage.DEFAULT)
+    val language: StateFlow<AppLanguage> = _language.asStateFlow()
+
     init {
         viewModelScope.launch {
             historyRepository.history.collect { _savedProxies.value = it }
+        }
+        viewModelScope.launch {
+            languageRepository.language.collect { _language.value = it }
         }
         viewModelScope.launch {
             val saved = repository.settings.first()
@@ -120,17 +130,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setPassword(password: String) = update { it.copy(password = password) }
     fun setScope(scope: ProxyScope) {
         update { it.copy(scope = scope) }
-        notifyReconnectIfConnected("代理范围")
+        notifyReconnectIfConnected(R.string.setting_proxy_scope)
     }
 
     fun setSelectedApps(apps: Set<String>) {
         update { it.copy(selectedApps = apps) }
-        notifyReconnectIfConnected("应用列表")
+        notifyReconnectIfConnected(R.string.setting_app_list)
     }
 
     fun setDnsMode(mode: DnsMode) {
         update { it.copy(dnsMode = mode) }
-        notifyReconnectIfConnected("DNS 模式")
+        notifyReconnectIfConnected(R.string.setting_dns_mode)
     }
 
     fun setDnsProvider(provider: DnsProvider) {
@@ -141,7 +151,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 customDns = provider.plainDns,
             )
         }
-        notifyReconnectIfConnected("DNS 供应商")
+        notifyReconnectIfConnected(R.string.setting_dns_provider)
     }
 
     fun applySavedProxy(proxy: SavedProxy) {
@@ -162,26 +172,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun notifyReconnectIfConnected(settingName: String) {
+    fun setLanguage(language: AppLanguage, onChanged: () -> Unit) {
+        viewModelScope.launch {
+            if (_language.value == language) return@launch
+            languageRepository.setLanguage(language)
+            onChanged()
+        }
+    }
+
+    private fun notifyReconnectIfConnected(settingNameRes: Int) {
         if (_settings.value.connected) {
-            _message.value = "已修改$settingName，需断开后重新连接方可生效"
+            val app = getApplication<Application>()
+            _message.value =
+                app.getString(
+                    R.string.setting_changed_reconnect,
+                    app.getString(settingNameRes),
+                )
         }
     }
 
     fun testProxy() {
         val current = _settings.value
+        val app = getApplication<Application>()
         if (current.connected || _connecting.value) {
-            _testState.value = ProxyTestState(ProxyTestStatus.Failed, "已连接时无法测试，请先断开连接")
+            _testState.value = ProxyTestState(ProxyTestStatus.Failed, app.getString(R.string.test_while_connected))
             return
         }
         if (!current.isValid()) {
-            _testState.value = ProxyTestState(ProxyTestStatus.Failed, "请先填写有效的代理地址和端口")
+            _testState.value = ProxyTestState(ProxyTestStatus.Failed, app.getString(R.string.fill_valid_proxy))
             return
         }
 
         viewModelScope.launch {
-            _testState.value = ProxyTestState(ProxyTestStatus.Testing, "正在测试代理连通性…")
-            val result = ProxyTester.test(current)
+            _testState.value = ProxyTestState(ProxyTestStatus.Testing, app.getString(R.string.testing_proxy))
+            val result = ProxyTester.test(app, current)
             _testState.value =
                 ProxyTestState(
                     status = if (result.success) ProxyTestStatus.Success else ProxyTestStatus.Failed,
@@ -192,12 +216,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun connect(onNeedPermission: () -> Unit) {
         val current = _settings.value
+        val app = getApplication<Application>()
         if (!current.isValid()) {
-            _message.value = "请填写有效的代理地址和端口"
+            _message.value = app.getString(R.string.connect_fill_valid)
             return
         }
         if (current.scope != ProxyScope.GLOBAL && current.selectedApps.isEmpty()) {
-            _message.value = "请选择至少一个应用"
+            _message.value = app.getString(R.string.select_at_least_one_app)
             return
         }
         onNeedPermission()

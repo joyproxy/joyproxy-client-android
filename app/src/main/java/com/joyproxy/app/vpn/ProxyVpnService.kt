@@ -1,9 +1,12 @@
 package com.joyproxy.app.vpn
 
+import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.IBinder
 import android.util.Log
+import com.joyproxy.app.data.LanguageRepository
+import com.joyproxy.app.util.LocaleHelper
 import io.nekohasekai.libbox.Notification
 import io.nekohasekai.libbox.TunOptions
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +20,11 @@ class ProxyVpnService : VpnService(), PlatformInterfaceWrapper {
   }
 
   private val boxService = BoxService(this, this)
+
+  override fun attachBaseContext(newBase: Context) {
+    val language = LanguageRepository.getLanguageSync(newBase)
+    super.attachBaseContext(LocaleHelper.wrap(newBase, language))
+  }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     if (intent?.action == ACTION_STOP) {

@@ -3,11 +3,10 @@ package com.joyproxy.app.ui
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.joyproxy.app.ui.theme.JoyProxyTheme
 
-class AppPickerActivity : ComponentActivity() {
+class AppPickerActivity : BaseActivity() {
     companion object {
         const val EXTRA_SELECTED_APPS = "selected_apps"
     }

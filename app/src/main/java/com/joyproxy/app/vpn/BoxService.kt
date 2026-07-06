@@ -18,7 +18,6 @@ import com.joyproxy.app.config.ConfigBuilder
 import com.joyproxy.app.config.ProxyScope
 import com.joyproxy.app.config.ProxySettings
 import com.joyproxy.app.data.SettingsRepository
-import com.joyproxy.app.debug.DebugSessionLog
 import io.nekohasekai.libbox.CommandServer
 import io.nekohasekai.libbox.CommandServerHandler
 import io.nekohasekai.libbox.Notification
@@ -83,32 +82,13 @@ class BoxService(
     private suspend fun startVpn() {
         val settings = pendingSettings ?: settingsRepository.settings.first()
         if (!settings.isValid()) {
-            failToStart("代理配置无效，请重新填写后连接")
+            failToStart(service.getString(R.string.error_invalid_config))
             return
         }
 
         settingsRepository.save(settings.copy(connected = false))
 
         val config = ConfigBuilder.build(settings)
-        // #region agent log
-        DebugSessionLog.log(
-            hypothesisId = "H1-H5",
-            location = "BoxService.kt:startVpn",
-            message = "dns config built",
-            data =
-                mapOf(
-                    "dnsMode" to settings.dnsMode.name,
-                    "dnsProvider" to settings.dnsProvider.name,
-                    "dohUrl" to settings.dnsProvider.dohUrl,
-                    "plainDns" to settings.dnsProvider.plainDns,
-                    "proxyHost" to settings.host,
-                    "proxyIsDomain" to !settings.host.matches(Regex("""^[\d.]+$""")),
-                    "configHasFakeip" to config.contains("fakeip"),
-                    "configHasDetourProxy" to config.contains("\"detour\":\"proxy\""),
-                    "configHasDnsLocal" to config.contains("\"tag\":\"dns-local\""),
-                ),
-        )
-        // #endregion
         DefaultNetworkMonitor.start()
 
         try {
@@ -122,18 +102,6 @@ class BoxService(
         status = Status.Started
         settingsRepository.save(settings.copy(connected = true))
         VpnStatusBus.emit(VpnStatusBus.Event.Connected)
-        // #region agent log
-        DebugSessionLog.log(
-            hypothesisId = "H1-H5",
-            location = "BoxService.kt:startVpn",
-            message = "vpn started",
-            data =
-                mapOf(
-                    "status" to "Started",
-                    "defaultNetwork" to (DefaultNetworkMonitor.defaultNetwork?.toString() ?: "null"),
-                ),
-        )
-        // #endregion
         withContext(Dispatchers.Main) {
             showNotification(service.getString(R.string.vpn_notification_title), true)
         }
@@ -149,11 +117,11 @@ class BoxService(
         val message = error.message.orEmpty()
         return when {
             message.contains("missing vpn permission", ignoreCase = true) ->
-                "未获得代理连接授权，请在系统弹窗中允许"
+                service.getString(R.string.error_no_vpn_permission)
             message.contains("vpn establish failed", ignoreCase = true) ->
-                "代理隧道建立失败，请重试"
-            message.isBlank() -> "代理启动失败，请稍后重试"
-            else -> "代理启动失败：${message.take(120)}"
+                service.getString(R.string.error_tunnel_failed)
+            message.isBlank() -> service.getString(R.string.error_start_failed)
+            else -> service.getString(R.string.error_start_failed_detail, message.take(120))
         }
     }
 

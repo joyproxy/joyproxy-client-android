@@ -5,19 +5,19 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import com.joyproxy.app.ui.theme.JoyProxyTheme
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.joyproxy.app.ui.AppPickerActivity
+import com.joyproxy.app.ui.BaseActivity
 import com.joyproxy.app.ui.HomeScreen
 import com.joyproxy.app.ui.MainViewModel
+import com.joyproxy.app.ui.theme.JoyProxyTheme
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : BaseActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private val vpnPermissionLauncher =
@@ -25,7 +25,7 @@ class MainActivity : ComponentActivity() {
             if (result.resultCode == RESULT_OK) {
                 requestNotificationPermissionThenStart()
             } else {
-                viewModel.showMessage("需要系统授权才能建立代理连接")
+                viewModel.showMessage(getString(R.string.vpn_permission_required))
             }
         }
 
@@ -61,6 +61,7 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     },
+                    onLanguageChange = { recreate() },
                 )
             }
         }

@@ -56,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
@@ -64,12 +65,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.joyproxy.app.BuildConfig
+import com.joyproxy.app.R
+import com.joyproxy.app.config.AppLanguage
 import com.joyproxy.app.config.DnsMode
 import com.joyproxy.app.config.DnsProvider
 import com.joyproxy.app.config.ProxyProtocol
 import com.joyproxy.app.config.ProxyScope
 import com.joyproxy.app.config.ProxySettings
 import com.joyproxy.app.config.SavedProxy
+import com.joyproxy.app.config.displayLabel
 import com.joyproxy.app.ui.theme.JoyProxyColors
 import com.joyproxy.app.ui.theme.JoyProxyHeader
 
@@ -79,12 +83,14 @@ fun HomeScreen(
     viewModel: MainViewModel,
     onConnect: () -> Unit,
     onPickApps: () -> Unit,
+    onLanguageChange: () -> Unit,
 ) {
     val settings by viewModel.settings.collectAsState()
     val connecting by viewModel.connecting.collectAsState()
     val message by viewModel.message.collectAsState()
     val testState by viewModel.testState.collectAsState()
     val savedProxies by viewModel.savedProxies.collectAsState()
+    val language by viewModel.language.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var dnsTapCount by remember { mutableStateOf(0) }
     var showDnsSettings by remember { mutableStateOf(false) }
@@ -125,55 +131,62 @@ fun HomeScreen(
                         .padding(top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-            ConnectionCard(
-                connected = settings.connected,
-                connecting = connecting,
-                onConnect = { viewModel.connect(onConnect) },
-                onDisconnect = viewModel::disconnect,
-            )
-
-            ProxyConfigCard(
-                settings = settings,
-                testState = testState,
-                savedProxies = savedProxies,
-                connected = settings.connected,
-                connecting = connecting,
-                onProtocolChange = viewModel::setProtocol,
-                onHostChange = viewModel::setHost,
-                onPortChange = viewModel::setPort,
-                onUsernameChange = viewModel::setUsername,
-                onPasswordChange = viewModel::setPassword,
-                onApplySavedProxy = viewModel::applySavedProxy,
-                onDeleteSavedProxy = viewModel::deleteSavedProxy,
-                onTest = viewModel::testProxy,
-            )
-
-            ScopeCard(
-                scope = settings.scope,
-                selectedCount = settings.selectedApps.size,
-                onScopeChange = viewModel::setScope,
-                onPickApps = onPickApps,
-            )
-
-            if (showDnsSettings) {
-                DnsCard(
-                    dnsMode = settings.dnsMode,
-                    dnsProvider = settings.dnsProvider,
-                    onDnsModeChange = viewModel::setDnsMode,
-                    onDnsProviderChange = viewModel::setDnsProvider,
+                ConnectionCard(
+                    connected = settings.connected,
+                    connecting = connecting,
+                    onConnect = { viewModel.connect(onConnect) },
+                    onDisconnect = viewModel::disconnect,
                 )
-            }
 
-            Text(
-                text = "v${BuildConfig.VERSION_NAME}",
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 4.dp),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-                color = JoyProxyColors.TextSecondary,
-            )
+                ProxyConfigCard(
+                    settings = settings,
+                    testState = testState,
+                    savedProxies = savedProxies,
+                    connected = settings.connected,
+                    connecting = connecting,
+                    onProtocolChange = viewModel::setProtocol,
+                    onHostChange = viewModel::setHost,
+                    onPortChange = viewModel::setPort,
+                    onUsernameChange = viewModel::setUsername,
+                    onPasswordChange = viewModel::setPassword,
+                    onApplySavedProxy = viewModel::applySavedProxy,
+                    onDeleteSavedProxy = viewModel::deleteSavedProxy,
+                    onTest = viewModel::testProxy,
+                )
+
+                ScopeCard(
+                    scope = settings.scope,
+                    selectedCount = settings.selectedApps.size,
+                    onScopeChange = viewModel::setScope,
+                    onPickApps = onPickApps,
+                )
+
+                if (showDnsSettings) {
+                    DnsCard(
+                        dnsMode = settings.dnsMode,
+                        dnsProvider = settings.dnsProvider,
+                        onDnsModeChange = viewModel::setDnsMode,
+                        onDnsProviderChange = viewModel::setDnsProvider,
+                    )
+                }
+
+                LanguageCard(
+                    language = language,
+                    onLanguageChange = { newLanguage ->
+                        viewModel.setLanguage(newLanguage, onLanguageChange)
+                    },
+                )
+
+                Text(
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = JoyProxyColors.TextSecondary,
+                )
             }
         }
     }
@@ -194,9 +207,9 @@ private fun ConnectionCard(
         }
     val statusText =
         when {
-            connected -> "已连接"
-            connecting -> "正在连接…"
-            else -> "未连接"
+            connected -> stringResource(R.string.status_connected)
+            connecting -> stringResource(R.string.status_connecting)
+            else -> stringResource(R.string.status_disconnected)
         }
 
     Card(
@@ -243,9 +256,9 @@ private fun ConnectionCard(
                 Text(
                     text =
                         when {
-                            connected -> "断开连接"
-                            connecting -> "连接中…"
-                            else -> "连接代理"
+                            connected -> stringResource(R.string.action_disconnect)
+                            connecting -> stringResource(R.string.action_connecting)
+                            else -> stringResource(R.string.action_connect)
                         },
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
@@ -287,7 +300,7 @@ private fun ProxyConfigCard(
     LaunchedEffect(settings.username) { if (username != settings.username) username = settings.username }
     LaunchedEffect(settings.password) { if (password != settings.password) password = settings.password }
 
-    SectionCard(title = "代理服务器") {
+    SectionCard(title = stringResource(R.string.section_proxy_server)) {
         if (savedProxies.isNotEmpty()) {
             var historyExpanded by remember { mutableStateOf(false) }
             val currentId =
@@ -303,7 +316,7 @@ private fun ProxyConfigCard(
                 }
             val historyLabel =
                 savedProxies.find { it.id == currentId }?.displayLabel()
-                    ?: "选择已保存的代理 (${savedProxies.size})"
+                    ?: stringResource(R.string.history_pick_saved, savedProxies.size)
 
             ExposedDropdownMenuBox(
                 expanded = historyExpanded,
@@ -313,7 +326,7 @@ private fun ProxyConfigCard(
                     value = historyLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("历史记录") },
+                    label = { Text(stringResource(R.string.label_history)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = historyExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     shape = RoundedCornerShape(12.dp),
@@ -336,7 +349,7 @@ private fun ProxyConfigCard(
                                 ) {
                                     Icon(
                                         Icons.Default.Close,
-                                        contentDescription = "删除",
+                                        contentDescription = stringResource(R.string.delete),
                                         tint = MaterialTheme.colorScheme.error,
                                     )
                                 }
@@ -353,7 +366,7 @@ private fun ProxyConfigCard(
                 value = settings.protocol.name,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("协议") },
+                label = { Text(stringResource(R.string.label_protocol)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = protocolExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
                 shape = RoundedCornerShape(12.dp),
@@ -386,7 +399,7 @@ private fun ProxyConfigCard(
                     onHostChange(input)
                 }
             },
-            label = { Text("地址 (IP 或域名)") },
+            label = { Text(stringResource(R.string.label_address)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
@@ -401,7 +414,7 @@ private fun ProxyConfigCard(
                     if (port in 1..65535) onPortChange(port)
                 }
             },
-            label = { Text("端口") },
+            label = { Text(stringResource(R.string.label_port)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -415,7 +428,7 @@ private fun ProxyConfigCard(
                 username = it
                 onUsernameChange(it)
             },
-            label = { Text("用户名 (可选)") },
+            label = { Text(stringResource(R.string.label_username_optional)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
@@ -428,7 +441,7 @@ private fun ProxyConfigCard(
                 password = it
                 onPasswordChange(it)
             },
-            label = { Text("密码 (可选)") },
+            label = { Text(stringResource(R.string.label_password_optional)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -436,7 +449,10 @@ private fun ProxyConfigCard(
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                        contentDescription = if (passwordVisible) "隐藏密码" else "显示密码",
+                        contentDescription =
+                            stringResource(
+                                if (passwordVisible) R.string.hide_password else R.string.show_password,
+                            ),
                     )
                 }
             },
@@ -460,9 +476,9 @@ private fun ProxyConfigCard(
             }
             Text(
                 when {
-                    connected -> "已连接，请先断开再测试"
-                    testState.status == ProxyTestStatus.Testing -> "测试中…"
-                    else -> "测试代理连通性"
+                    connected -> stringResource(R.string.test_connected_first)
+                    testState.status == ProxyTestStatus.Testing -> stringResource(R.string.test_testing)
+                    else -> stringResource(R.string.test_connectivity)
                 },
             )
         }
@@ -485,13 +501,13 @@ private fun ScopeCard(
     onScopeChange: (ProxyScope) -> Unit,
     onPickApps: () -> Unit,
 ) {
-    SectionCard(title = "代理范围") {
+    SectionCard(title = stringResource(R.string.section_proxy_scope)) {
         var expanded by remember { mutableStateOf(false) }
         val scopeLabel =
             when (scope) {
-                ProxyScope.GLOBAL -> "全局 (所有应用)"
-                ProxyScope.WHITELIST -> "白名单 (仅选中应用)"
-                ProxyScope.BLACKLIST -> "黑名单 (排除选中应用)"
+                ProxyScope.GLOBAL -> stringResource(R.string.scope_global_full)
+                ProxyScope.WHITELIST -> stringResource(R.string.scope_whitelist_full)
+                ProxyScope.BLACKLIST -> stringResource(R.string.scope_blacklist_full)
             }
 
         ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
@@ -510,9 +526,9 @@ private fun ScopeCard(
                         text = {
                             Text(
                                 when (item) {
-                                    ProxyScope.GLOBAL -> "全局"
-                                    ProxyScope.WHITELIST -> "白名单"
-                                    ProxyScope.BLACKLIST -> "黑名单"
+                                    ProxyScope.GLOBAL -> stringResource(R.string.scope_global)
+                                    ProxyScope.WHITELIST -> stringResource(R.string.scope_whitelist)
+                                    ProxyScope.BLACKLIST -> stringResource(R.string.scope_blacklist)
                                 },
                             )
                         },
@@ -533,7 +549,7 @@ private fun ScopeCard(
                 colors = ButtonDefaults.buttonColors(containerColor = JoyProxyColors.Indigo),
             ) {
                 Icon(Icons.Default.Apps, contentDescription = null)
-                Text("选择应用 ($selectedCount)", modifier = Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.pick_apps, selectedCount), modifier = Modifier.padding(start = 8.dp))
             }
         }
     }
@@ -547,7 +563,7 @@ private fun DnsCard(
     onDnsModeChange: (DnsMode) -> Unit,
     onDnsProviderChange: (DnsProvider) -> Unit,
 ) {
-    SectionCard(title = "DNS 设置") {
+    SectionCard(title = stringResource(R.string.section_dns_settings)) {
         var modeExpanded by remember { mutableStateOf(false) }
 
         ExposedDropdownMenuBox(expanded = modeExpanded, onExpandedChange = { modeExpanded = it }) {
@@ -555,7 +571,7 @@ private fun DnsCard(
                 value = dnsModeLabel(dnsMode),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("DNS 模式") },
+                label = { Text(stringResource(R.string.label_dns_mode)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modeExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
                 shape = RoundedCornerShape(12.dp),
@@ -589,15 +605,15 @@ private fun DnsCard(
             var providerExpanded by remember { mutableStateOf(false) }
             val providerLabel =
                 when (dnsMode) {
-                    DnsMode.FAKE_IP -> "远程 DNS 供应商"
-                    DnsMode.DOH -> "DoH 供应商"
-                    DnsMode.CUSTOM -> "DNS 供应商"
-                    else -> "DNS 供应商"
+                    DnsMode.FAKE_IP -> stringResource(R.string.label_remote_dns_provider)
+                    DnsMode.DOH -> stringResource(R.string.label_doh_provider)
+                    DnsMode.CUSTOM -> stringResource(R.string.label_dns_provider)
+                    else -> stringResource(R.string.label_dns_provider)
                 }
 
             ExposedDropdownMenuBox(expanded = providerExpanded, onExpandedChange = { providerExpanded = it }) {
                 OutlinedTextField(
-                    value = dnsProvider.label,
+                    value = dnsProvider.displayLabel(),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(providerLabel) },
@@ -609,7 +625,7 @@ private fun DnsCard(
                 ExposedDropdownMenu(expanded = providerExpanded, onDismissRequest = { providerExpanded = false }) {
                     DnsProvider.entries.forEach { provider ->
                         DropdownMenuItem(
-                            text = { Text(provider.label) },
+                            text = { Text(provider.displayLabel()) },
                             onClick = {
                                 onDnsProviderChange(provider)
                                 providerExpanded = false
@@ -628,30 +644,79 @@ private fun DnsCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageCard(
+    language: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit,
+) {
+    SectionCard(title = stringResource(R.string.section_language)) {
+        var expanded by remember { mutableStateOf(false) }
+        val languageLabel =
+            when (language) {
+                AppLanguage.EN -> stringResource(R.string.language_english)
+                AppLanguage.ZH -> stringResource(R.string.language_chinese)
+            }
+
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            OutlinedTextField(
+                value = languageLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(stringResource(R.string.label_language)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                shape = RoundedCornerShape(12.dp),
+                colors = fieldColors,
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                AppLanguage.entries.forEach { item ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                when (item) {
+                                    AppLanguage.EN -> stringResource(R.string.language_english)
+                                    AppLanguage.ZH -> stringResource(R.string.language_chinese)
+                                },
+                            )
+                        },
+                        onClick = {
+                            onLanguageChange(item)
+                            expanded = false
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun dnsModeLabel(mode: DnsMode): String =
     when (mode) {
-        DnsMode.FAKE_IP -> "推荐 (Fake-IP)"
-        DnsMode.DOH -> "加密 DNS (DoH)"
-        DnsMode.CUSTOM -> "自定义 DNS"
-        DnsMode.SYSTEM -> "系统默认"
+        DnsMode.FAKE_IP -> stringResource(R.string.dns_mode_fake_ip)
+        DnsMode.DOH -> stringResource(R.string.dns_mode_doh)
+        DnsMode.CUSTOM -> stringResource(R.string.dns_mode_custom)
+        DnsMode.SYSTEM -> stringResource(R.string.dns_mode_system)
     }
 
+@Composable
 private fun dnsModeDescription(mode: DnsMode): String =
     when (mode) {
-        DnsMode.FAKE_IP -> "应用拿到虚拟 IP，真实域名在代理端通过所选 DoH 解析。防 DNS 污染效果最好。"
-        DnsMode.DOH -> "DNS 查询经 HTTPS 加密后走代理，返回真实 IP。"
-        DnsMode.CUSTOM -> "使用所选 DNS 服务器，TCP 查询经代理发出。"
-        DnsMode.SYSTEM -> "使用系统默认 DNS 直连解析，不经过代理 DNS。兼容性最好，但不防 DNS 污染。"
+        DnsMode.FAKE_IP -> stringResource(R.string.dns_desc_fake_ip)
+        DnsMode.DOH -> stringResource(R.string.dns_desc_doh)
+        DnsMode.CUSTOM -> stringResource(R.string.dns_desc_custom)
+        DnsMode.SYSTEM -> stringResource(R.string.dns_desc_system)
     }
 
+@Composable
 private fun dnsProviderDetail(mode: DnsMode, provider: DnsProvider): String =
     when (mode) {
-        DnsMode.FAKE_IP, DnsMode.DOH -> "DoH: ${provider.dohUrl}"
-        DnsMode.CUSTOM -> "DNS: ${provider.plainDns}"
+        DnsMode.FAKE_IP, DnsMode.DOH -> stringResource(R.string.dns_detail_doh, provider.dohUrl)
+        DnsMode.CUSTOM -> stringResource(R.string.dns_detail_custom, provider.plainDns)
         DnsMode.SYSTEM -> ""
     }
 
-/** 解析 host:port 或 [ipv6]:port 格式，用于粘贴时自动拆分。 */
 private fun parseHostPort(input: String): Pair<String, Int>? {
     val trimmed = input.trim()
     if (trimmed.isBlank()) return null

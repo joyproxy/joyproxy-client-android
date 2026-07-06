@@ -31,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.joyproxy.app.R
 import com.joyproxy.app.data.AppInfo
 import com.joyproxy.app.data.AppListRepository
 import com.joyproxy.app.ui.theme.JoyProxyColors
@@ -70,15 +72,19 @@ fun AppPickerScreen(
         containerColor = JoyProxyColors.Surface,
         topBar = {
             TopAppBar(
-                title = { Text("选择应用", color = Color.White) },
+                title = { Text(stringResource(R.string.title_pick_apps), color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回", tint = Color.White)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = Color.White,
+                        )
                     }
                 },
                 actions = {
                     TextButton(onClick = { onDone(selected) }) {
-                        Text("完成 (${selected.size})", color = Color.White)
+                        Text(stringResource(R.string.done_count, selected.size), color = Color.White)
                     }
                 },
                 colors =
@@ -97,7 +103,7 @@ fun AppPickerScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
-                label = { Text("搜索应用") },
+                label = { Text(stringResource(R.string.search_apps)) },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 singleLine = true,
             )

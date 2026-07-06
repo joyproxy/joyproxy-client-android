@@ -9,6 +9,8 @@ import android.net.wifi.WifiManager
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.content.getSystemService
+import com.joyproxy.app.data.LanguageRepository
+import com.joyproxy.app.util.LocaleHelper
 import io.nekohasekai.libbox.Libbox
 import io.nekohasekai.libbox.SetupOptions
 import kotlinx.coroutines.CompletableDeferred
@@ -23,15 +25,18 @@ import java.util.Locale
 class JoyProxyApp : Application() {
     val libboxReady = CompletableDeferred<Unit>()
 
-    override fun attachBaseContext(base: Context?) {
-        super.attachBaseContext(base)
+    override fun attachBaseContext(base: Context) {
+        val language = LanguageRepository.getLanguageSync(base)
+        val wrapped = LocaleHelper.wrap(base, language)
+        super.attachBaseContext(wrapped)
         instance = this
     }
 
     override fun onCreate() {
         super.onCreate()
         installCrashLogger()
-        Libbox.setLocale(Locale.getDefault().toLanguageTag().replace("-", "_"))
+        val language = LanguageRepository.getLanguageSync(this)
+        Libbox.setLocale(language.toLocale().toLanguageTag().replace("-", "_"))
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 initializeLibbox()
@@ -42,7 +47,6 @@ class JoyProxyApp : Application() {
         }
     }
 
-    // 把任何线程上未捕获的异常完整写入 crash.log，方便定位崩溃根因（路径见日志）。
     private fun installCrashLogger() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->

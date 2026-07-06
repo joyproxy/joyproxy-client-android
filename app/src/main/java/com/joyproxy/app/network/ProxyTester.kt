@@ -1,5 +1,7 @@
 package com.joyproxy.app.network
 
+import android.content.Context
+import com.joyproxy.app.R
 import com.joyproxy.app.config.ProxyProtocol
 import com.joyproxy.app.config.ProxySettings
 import kotlinx.coroutines.Dispatchers
@@ -23,9 +25,9 @@ object ProxyTester {
     private const val TEST_PORT = 443
     private const val TIMEOUT_MS = 8000
 
-    suspend fun test(settings: ProxySettings): Result = withContext(Dispatchers.IO) {
+    suspend fun test(context: Context, settings: ProxySettings): Result = withContext(Dispatchers.IO) {
         if (!settings.isValid()) {
-            return@withContext Result(false, "请先填写有效的代理地址和端口")
+            return@withContext Result(false, context.getString(R.string.fill_valid_proxy))
         }
 
         val start = System.currentTimeMillis()
@@ -37,18 +39,18 @@ object ProxyTester {
                 val output = socket.getOutputStream()
 
                 when (settings.protocol) {
-                    ProxyProtocol.SOCKS5 -> testSocks5(settings, input, output)
-                    ProxyProtocol.HTTP -> testHttp(settings, input, output)
+                    ProxyProtocol.SOCKS5 -> testSocks5(context, settings, input, output)
+                    ProxyProtocol.HTTP -> testHttp(context, settings, input, output)
                 }
             }
             val latency = System.currentTimeMillis() - start
-            Result(true, "代理连通正常，延迟 ${latency}ms", latency)
+            Result(true, context.getString(R.string.test_success, latency), latency)
         } catch (e: Exception) {
-            Result(false, "连接失败：${friendlyMessage(e)}")
+            Result(false, context.getString(R.string.connection_failed, friendlyMessage(context, e)))
         }
     }
 
-    private fun testSocks5(settings: ProxySettings, input: InputStream, output: OutputStream) {
+    private fun testSocks5(context: Context, settings: ProxySettings, input: InputStream, output: OutputStream) {
         val hasAuth = settings.username.isNotBlank()
         if (hasAuth) {
             output.write(byteArrayOf(0x05, 0x02, 0x00, 0x02))
@@ -57,9 +59,9 @@ object ProxyTester {
         }
         output.flush()
 
-        val methodResponse = readExact(input, 2)
-        if (methodResponse[0] != 0x05.toByte()) error("SOCKS5 握手失败")
-        if (methodResponse[1] == 0xFF.toByte()) error("代理不支持当前认证方式")
+        val methodResponse = readExact(context, input, 2)
+        if (methodResponse[0] != 0x05.toByte()) error(context.getString(R.string.socks5_handshake_failed))
+        if (methodResponse[1] == 0xFF.toByte()) error(context.getString(R.string.proxy_auth_not_supported))
 
         if (methodResponse[1] == 0x02.toByte()) {
             val user = settings.username.toByteArray(StandardCharsets.UTF_8)
@@ -73,8 +75,8 @@ object ProxyTester {
             output.write(auth)
             output.flush()
 
-            val authResponse = readExact(input, 2)
-            if (authResponse[1] != 0x00.toByte()) error("代理认证失败，请检查用户名和密码")
+            val authResponse = readExact(context, input, 2)
+            if (authResponse[1] != 0x00.toByte()) error(context.getString(R.string.proxy_auth_failed))
         }
 
         val hostBytes = TEST_HOST.toByteArray(StandardCharsets.UTF_8)
@@ -90,14 +92,19 @@ object ProxyTester {
         output.write(request)
         output.flush()
 
-        val connectResponse = readExact(input, 4)
+        val connectResponse = readExact(context, input, 4)
         if (connectResponse[1] != 0x00.toByte()) {
-            error("代理无法转发流量：${socks5Error(connectResponse[1].toInt() and 0xFF)}")
+            error(
+                context.getString(
+                    R.string.proxy_forward_failed,
+                    socks5Error(context, connectResponse[1].toInt() and 0xFF),
+                ),
+            )
         }
-        skipSocks5Address(input, connectResponse[3])
+        skipSocks5Address(context, input, connectResponse[3])
     }
 
-    private fun testHttp(settings: ProxySettings, input: InputStream, output: OutputStream) {
+    private fun testHttp(context: Context, settings: ProxySettings, input: InputStream, output: OutputStream) {
         val target = "$TEST_HOST:$TEST_PORT"
         val builder = StringBuilder()
             .append("CONNECT ").append(target).append(" HTTP/1.1\r\n")
@@ -114,16 +121,16 @@ object ProxyTester {
         output.flush()
 
         val response = readLine(input)
-        if (!response.startsWith("HTTP/1.")) error("HTTP 代理响应异常")
-        if (!response.contains(" 200 ")) error("HTTP 代理拒绝连接：$response")
+        if (!response.startsWith("HTTP/1.")) error(context.getString(R.string.http_response_invalid))
+        if (!response.contains(" 200 ")) error(context.getString(R.string.http_proxy_rejected, response))
     }
 
-    private fun readExact(input: InputStream, size: Int): ByteArray {
+    private fun readExact(context: Context, input: InputStream, size: Int): ByteArray {
         val buffer = ByteArray(size)
         var offset = 0
         while (offset < size) {
             val read = input.read(buffer, offset, size - offset)
-            if (read < 0) error("代理连接已断开")
+            if (read < 0) error(context.getString(R.string.connection_closed))
             offset += read
         }
         return buffer
@@ -140,38 +147,42 @@ object ProxyTester {
         return buffer.toString()
     }
 
-    private fun skipSocks5Address(input: InputStream, addressType: Byte) {
+    private fun skipSocks5Address(context: Context, input: InputStream, addressType: Byte) {
         when (addressType) {
-            0x01.toByte() -> readExact(input, 4 + 2)
+            0x01.toByte() -> readExact(context, input, 4 + 2)
             0x03.toByte() -> {
                 val length = input.read()
-                readExact(input, length + 2)
+                readExact(context, input, length + 2)
             }
-            0x04.toByte() -> readExact(input, 16 + 2)
-            else -> error("SOCKS5 地址格式异常")
+            0x04.toByte() -> readExact(context, input, 16 + 2)
+            else -> error(context.getString(R.string.socks5_address_invalid))
         }
     }
 
-    private fun socks5Error(code: Int): String =
+    private fun socks5Error(context: Context, code: Int): String =
         when (code) {
-            1 -> "一般性失败"
-            2 -> "规则不允许连接"
-            3 -> "网络不可达"
-            4 -> "主机不可达"
-            5 -> "连接被拒绝"
-            6 -> "TTL 超时"
-            7 -> "不支持的命令"
-            8 -> "不支持的地址类型"
-            else -> "错误码 $code"
+            1 -> context.getString(R.string.socks5_error_general)
+            2 -> context.getString(R.string.socks5_error_not_allowed)
+            3 -> context.getString(R.string.socks5_error_network_unreachable)
+            4 -> context.getString(R.string.socks5_error_host_unreachable)
+            5 -> context.getString(R.string.socks5_error_refused)
+            6 -> context.getString(R.string.socks5_error_ttl_expired)
+            7 -> context.getString(R.string.socks5_error_command_not_supported)
+            8 -> context.getString(R.string.socks5_error_address_not_supported)
+            else -> context.getString(R.string.socks5_error_code, code)
         }
 
-    private fun friendlyMessage(error: Exception): String {
+    private fun friendlyMessage(context: Context, error: Exception): String {
         val message = error.message ?: error.javaClass.simpleName
         return when {
-            message.contains("ECONNREFUSED", ignoreCase = true) -> "连接被拒绝，请检查 IP 和端口"
-            message.contains("timed out", ignoreCase = true) -> "连接超时，请检查网络或代理是否在线"
-            message.contains("Unable to resolve host", ignoreCase = true) -> "无法解析代理地址"
-            message.contains("Network is unreachable", ignoreCase = true) -> "网络不可达"
+            message.contains("ECONNREFUSED", ignoreCase = true) ->
+                context.getString(R.string.error_econnrefused)
+            message.contains("timed out", ignoreCase = true) ->
+                context.getString(R.string.error_timed_out)
+            message.contains("Unable to resolve host", ignoreCase = true) ->
+                context.getString(R.string.error_resolve_host)
+            message.contains("Network is unreachable", ignoreCase = true) ->
+                context.getString(R.string.error_network_unreachable)
             else -> message.take(min(message.length, 120))
         }
     }

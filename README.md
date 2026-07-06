@@ -1,22 +1,23 @@
 # JoyProxy
 
-Android 代理 IP 工具，基于 sing-box `libbox` + `VpnService` 实现。
+Android proxy client built on sing-box `libbox` and `VpnService`.
 
-## 功能
+## Features
 
-- 支持 HTTP / SOCKS5 代理（IP 或域名 + 端口）
-- 三种代理范围：全局 / 白名单（仅选中 App）/ 黑名单（排除选中 App）
-- DNS 防污染：Fake-IP（推荐）、DoH 安全 DNS、自定义 DNS、系统默认
-- 无需 Root
+- HTTP / SOCKS5 proxy support (IP or domain + port)
+- Three proxy scopes: global / whitelist (selected apps only) / blacklist (exclude selected apps)
+- DNS options: Fake-IP, DoH, custom DNS, system default
+- Configurable language (English by default, switchable to Chinese in app settings)
+- No root required
 
-## 编译
+## Build
 
-本项目依赖 `libbox.aar`（sing-box 核心），不在仓库中直接提交。GitHub Actions 会在编译时自动从 sing-box v1.13.13 构建。
+This project depends on `libbox.aar` (sing-box core), which is not committed to the repository. GitHub Actions builds it automatically from sing-box v1.13.13 during CI.
 
-### 本地编译
+### Local build
 
-1. 安装 JDK 17、Android SDK、Go 1.23、NDK 28
-2. 构建 libbox：
+1. Install JDK 17, Android SDK, Go 1.23, and NDK 28
+2. Build libbox:
 
 ```bash
 git clone --depth 1 --branch v1.13.13 https://github.com/SagerNet/sing-box.git
@@ -29,14 +30,14 @@ go run ./cmd/internal/build_libbox/main.go -target android
 cp libbox.aar ../joy-proxy-android/app/libs/
 ```
 
-3. 编译 APK：
+3. Build the APK:
 
 ```bash
 ./gradlew assembleRelease
 ```
 
-APK 输出：`app/build/outputs/apk/release/app-release.apk`
+APK output: `app/build/outputs/apk/release/app-release.apk`
 
-## 许可证
+## License
 
-本项目使用 sing-box libbox（GPLv3），整体遵循 GPLv3 许可证。
+This project uses sing-box libbox (GPLv3) and is licensed under GPLv3.

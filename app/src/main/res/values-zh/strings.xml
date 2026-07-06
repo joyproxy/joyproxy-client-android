@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JoyProxy</string>
+
+    <!-- VPN notifications -->
+    <string name="vpn_notification_channel">代理连接</string>
+    <string name="vpn_notification_title">JoyProxy 已连接</string>
+    <string name="vpn_notification_text">代理运行中</string>
+    <string name="vpn_connecting">正在连接…</string>
+    <string name="vpn_stopped">已断开</string>
+
+    <!-- Connection status -->
+    <string name="status_connected">已连接</string>
+    <string name="status_connecting">正在连接…</string>
+    <string name="status_disconnected">未连接</string>
+    <string name="action_disconnect">断开连接</string>
+    <string name="action_connecting">连接中…</string>
+    <string name="action_connect">连接代理</string>
+
+    <!-- Proxy server -->
+    <string name="section_proxy_server">代理服务器</string>
+    <string name="history_pick_saved">选择已保存的代理 (%1$d)</string>
+    <string name="label_history">历史记录</string>
+    <string name="delete">删除</string>
+    <string name="label_protocol">协议</string>
+    <string name="label_address">地址 (IP 或域名)</string>
+    <string name="label_port">端口</string>
+    <string name="label_username_optional">用户名 (可选)</string>
+    <string name="label_password_optional">密码 (可选)</string>
+    <string name="hide_password">隐藏密码</string>
+    <string name="show_password">显示密码</string>
+    <string name="test_connected_first">已连接，请先断开再测试</string>
+    <string name="test_testing">测试中…</string>
+    <string name="test_connectivity">测试代理连通性</string>
+
+    <!-- Proxy scope -->
+    <string name="section_proxy_scope">代理范围</string>
+    <string name="scope_global_full">全局 (所有应用)</string>
+    <string name="scope_whitelist_full">白名单 (仅选中应用)</string>
+    <string name="scope_blacklist_full">黑名单 (排除选中应用)</string>
+    <string name="scope_global">全局</string>
+    <string name="scope_whitelist">白名单</string>
+    <string name="scope_blacklist">黑名单</string>
+    <string name="pick_apps">选择应用 (%1$d)</string>
+
+    <!-- DNS settings -->
+    <string name="section_dns_settings">DNS 设置</string>
+    <string name="label_dns_mode">DNS 模式</string>
+    <string name="dns_mode_fake_ip">推荐 (Fake-IP)</string>
+    <string name="dns_mode_doh">加密 DNS (DoH)</string>
+    <string name="dns_mode_custom">自定义 DNS</string>
+    <string name="dns_mode_system">系统默认</string>
+    <string name="dns_desc_fake_ip">应用拿到虚拟 IP，真实域名在代理端通过所选 DoH 解析。</string>
+    <string name="dns_desc_doh">DNS 查询经 HTTPS 加密后走代理，返回真实 IP。</string>
+    <string name="dns_desc_custom">使用所选 DNS 服务器，TCP 查询经代理发出。</string>
+    <string name="dns_desc_system">使用系统默认 DNS 直连解析，不经过代理 DNS。兼容性最好。</string>
+    <string name="label_remote_dns_provider">远程 DNS 供应商</string>
+    <string name="label_doh_provider">DoH 供应商</string>
+    <string name="label_dns_provider">DNS 供应商</string>
+    <string name="dns_detail_doh">DoH: %1$s</string>
+    <string name="dns_detail_custom">DNS: %1$s</string>
+    <string name="dns_provider_google">Google</string>
+    <string name="dns_provider_cloudflare">Cloudflare</string>
+    <string name="dns_provider_opendns">OpenDNS</string>
+    <string name="dns_provider_quad9">Quad9</string>
+    <string name="dns_provider_alidns">阿里 DNS</string>
+
+    <!-- Language -->
+    <string name="section_language">语言</string>
+    <string name="label_language">应用语言</string>
+    <string name="language_english">English</string>
+    <string name="language_chinese">中文</string>
+
+    <!-- Messages -->
+    <string name="setting_changed_reconnect">已修改%1$s，需断开后重新连接方可生效</string>
+    <string name="setting_proxy_scope">代理范围</string>
+    <string name="setting_app_list">应用列表</string>
+    <string name="setting_dns_mode">DNS 模式</string>
+    <string name="setting_dns_provider">DNS 供应商</string>
+    <string name="test_while_connected">已连接时无法测试，请先断开连接</string>
+    <string name="fill_valid_proxy">请先填写有效的代理地址和端口</string>
+    <string name="testing_proxy">正在测试代理连通性…</string>
+    <string name="connect_fill_valid">请填写有效的代理地址和端口</string>
+    <string name="select_at_least_one_app">请选择至少一个应用</string>
+    <string name="vpn_permission_required">需要系统授权才能建立代理连接</string>
+
+    <!-- BoxService errors -->
+    <string name="error_invalid_config">代理配置无效，请重新填写后连接</string>
+    <string name="error_no_vpn_permission">未获得代理连接授权，请在系统弹窗中允许</string>
+    <string name="error_tunnel_failed">代理隧道建立失败，请重试</string>
+    <string name="error_start_failed">代理启动失败，请稍后重试</string>
+    <string name="error_start_failed_detail">代理启动失败：%1$s</string>
+
+    <!-- ProxyTester -->
+    <string name="test_success">代理连通正常，延迟 %1$dms</string>
+    <string name="connection_failed">连接失败：%1$s</string>
+    <string name="socks5_handshake_failed">SOCKS5 握手失败</string>
+    <string name="proxy_auth_not_supported">代理不支持当前认证方式</string>
+    <string name="proxy_auth_failed">代理认证失败，请检查用户名和密码</string>
+    <string name="proxy_forward_failed">代理无法转发流量：%1$s</string>
+    <string name="http_response_invalid">HTTP 代理响应异常</string>
+    <string name="http_proxy_rejected">HTTP 代理拒绝连接：%1$s</string>
+    <string name="connection_closed">代理连接已断开</string>
+    <string name="socks5_address_invalid">SOCKS5 地址格式异常</string>
+    <string name="socks5_error_general">一般性失败</string>
+    <string name="socks5_error_not_allowed">规则不允许连接</string>
+    <string name="socks5_error_network_unreachable">网络不可达</string>
+    <string name="socks5_error_host_unreachable">主机不可达</string>
+    <string name="socks5_error_refused">连接被拒绝</string>
+    <string name="socks5_error_ttl_expired">TTL 超时</string>
+    <string name="socks5_error_command_not_supported">不支持的命令</string>
+    <string name="socks5_error_address_not_supported">不支持的地址类型</string>
+    <string name="socks5_error_code">错误码 %1$d</string>
+    <string name="error_econnrefused">连接被拒绝，请检查 IP 和端口</string>
+    <string name="error_timed_out">连接超时，请检查网络或代理是否在线</string>
+    <string name="error_resolve_host">无法解析代理地址</string>
+    <string name="error_network_unreachable">网络不可达</string>
+
+    <!-- App picker -->
+    <string name="title_pick_apps">选择应用</string>
+    <string name="back">返回</string>
+    <string name="done_count">完成 (%1$d)</string>
+    <string name="search_apps">搜索应用</string>
+</resources>
