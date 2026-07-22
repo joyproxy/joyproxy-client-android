@@ -85,10 +85,20 @@ jobs:
           name: JoyProxy v1.0.1 build ${{ github.run_number }}
           files: app/build/outputs/apk/release/*.apk
           body: |
-            JoyProxy 签名版 APK (build ${{ github.run_number }})
+            ### English
+
+            JoyProxy signed release APK (build ${{ github.run_number }})
+
+            - Signed with release certificate, ready to install
+            - HTTP / SOCKS5 proxy support
+            - Global / Whitelist / Blacklist proxy scope
+
+            ### 中文
+
+            JoyProxy 签名版 APK（build ${{ github.run_number }}）
 
             - 已使用 release 证书签名，可直接安装
-            - HTTP / SOCKS5 代理
-            - 全局 / 白名单 / 黑名单 代理范围
+            - 支持 HTTP / SOCKS5 代理
+            - 支持全局 / 白名单 / 黑名单 代理范围
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
