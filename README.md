@@ -1,5 +1,7 @@
 # JoyProxy Android Client
 
+> **Official product page:** [www.joyproxy.com/products/android-client](https://www.joyproxy.com/products/android-client.html) · [GitHub Releases](https://github.com/joyproxy/joyproxy-client-android/releases)
+
 [English](#english) | [中文](#中文)
 
 ---
