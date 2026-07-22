@@ -17,13 +17,13 @@ set HTTPS_PROXY=http://sg-xx.edge.joyproxy.com:10000
 echo %GH_TOKEN%| gh auth login --hostname github.com --git-protocol https --with-token
 if errorlevel 1 exit /b 1
 
-gh repo create joyproxy/joy-proxy-android --public --source=. --remote=origin --push
+gh repo create joyproxy/joyproxy-client-android --public --source=. --remote=origin --push
 if errorlevel 1 (
   git push -u origin main
 )
 
 echo.
 echo Done. Check build status:
-echo https://github.com/joyproxy/joy-proxy-android/actions
+echo https://github.com/joyproxy/joyproxy-client-android/actions
 echo.
 echo APK will appear in Releases after CI completes.
