@@ -1,6 +1,10 @@
 # JoyProxy Android Client
 
-> **Official product page:** [www.joyproxy.com/products/android-client](https://www.joyproxy.com/products/android-client.html) · [GitHub Releases](https://github.com/joyproxy/joyproxy-client-android/releases)
+- **Official website:** https://www.joyproxy.com
+- **Official product page:** https://www.joyproxy.com/products/android-client.html
+- **Download APK:** https://github.com/joyproxy/joyproxy-client-android/releases
+
+> **Full documentation is on the official website.** Visit **https://www.joyproxy.com/products/android-client.html** for the complete product guide (features, usage steps, and screenshots). This README is a short technical reference only.
 
 [English](#english) | [中文](#中文)
 
@@ -11,6 +15,9 @@
 ## English
 
 Android proxy client built on sing-box `libbox`.
+
+**Official website:** https://www.joyproxy.com  
+**Official product page:** https://www.joyproxy.com/products/android-client.html
 
 ### Features
 
@@ -83,6 +90,9 @@ This project uses sing-box libbox (GPLv3) and is licensed under GPLv3.
 ## 中文
 
 基于 sing-box `libbox` 的 Android 代理客户端。
+
+**官方网站：** https://www.joyproxy.com  
+**官方产品页：** https://www.joyproxy.com/products/android-client.html
 
 ### 功能特性
 
